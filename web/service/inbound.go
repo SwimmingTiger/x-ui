@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"time"
 	"x-ui/database"
 	"x-ui/database/model"
@@ -34,9 +33,9 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
-func (s *InboundService) checkPortExist(port int, ignoreId int) (bool, error) {
+func (s *InboundService) checkPortExist(inbound *model.Inbound, ignoreId int) (bool, error) {
 	db := database.GetDB()
-	db = db.Model(model.Inbound{}).Where("port = ?", port)
+	db = db.Model(model.Inbound{}).Where("tag = ?", inbound.GetTag())
 	if ignoreId > 0 {
 		db = db.Where("id != ?", ignoreId)
 	}
@@ -49,7 +48,7 @@ func (s *InboundService) checkPortExist(port int, ignoreId int) (bool, error) {
 }
 
 func (s *InboundService) AddInbound(inbound *model.Inbound) error {
-	exist, err := s.checkPortExist(inbound.Port, 0)
+	exist, err := s.checkPortExist(inbound, 0)
 	if err != nil {
 		return err
 	}
@@ -62,7 +61,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) error {
 
 func (s *InboundService) AddInbounds(inbounds []*model.Inbound) error {
 	for _, inbound := range inbounds {
-		exist, err := s.checkPortExist(inbound.Port, 0)
+		exist, err := s.checkPortExist(inbound, 0)
 		if err != nil {
 			return err
 		}
@@ -108,7 +107,7 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) error {
-	exist, err := s.checkPortExist(inbound.Port, inbound.Id)
+	exist, err := s.checkPortExist(inbound, inbound.Id)
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) error {
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
+	oldInbound.Tag = inbound.GetTag()
 
 	db := database.GetDB()
 	return db.Save(oldInbound).Error

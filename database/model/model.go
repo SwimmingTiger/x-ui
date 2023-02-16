@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"x-ui/util/json_util"
 	"x-ui/xray"
@@ -35,12 +36,37 @@ type Inbound struct {
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" gorm:"unique"`
+	Port           int      `json:"port" form:"port"`
 	Protocol       Protocol `json:"protocol" form:"protocol"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+}
+
+type InboundStreamSettings struct {
+	Network string `json:"network"`
+}
+
+func (i *Inbound) GetNetwork() string {
+	var obj InboundStreamSettings
+	err := json.Unmarshal([]byte(i.StreamSettings), &obj)
+	if err != nil {
+		fmt.Println("decode streamSettings failed, assuming the network is tcp: ", err)
+		return "tcp"
+	}
+	switch obj.Network {
+	case "kcp":
+		fallthrough
+	case "quic":
+		return "udp"
+	default:
+		return "tcp"
+	}
+}
+
+func (i *Inbound) GetTag() string {
+	return fmt.Sprintf("inbound-%v-%v", i.GetNetwork(), i.Port)
 }
 
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
